@@ -6,3 +6,4 @@
                "rackunit-lib"))
 (define build-deps '("scribble-lib"
                      "racket-doc"))
+(define scribblings '(("doc/user-guide.scrbl")))
