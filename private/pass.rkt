@@ -286,14 +286,13 @@
                               maybe-otype maybe-olang maybe-ometa-parser #`(begin #,@forms)))
                           forms))
                      (if (let ([maybe-itype (pdesc-maybe-itype pdesc)])
-                           (and maybe-itype 
+                           (and maybe-itype
                                 (nonterm-id->ntspec? maybe-itype
                                   (language-ntspecs
                                     (pass-desc-maybe-ilang pass-desc)))))
                          (let-values  ([(body defn*)
                                         (syntax-case (pdesc-body pdesc) ()
-                                          [((definitions defn* ...) . body)
-                                           (eq? (datum definitions) 'definitions)
+                                          [(#:definitions (defn* ...) . body)
                                            (values #'body #'(defn* ...))]
                                           [body (values #'body '())])])
                            #`(#,@defn*
@@ -1593,9 +1592,8 @@
                  (do-define-pass #'pass-name echo? maybe-iname maybe-itype fml*
                    maybe-oname maybe-otype #'(xval ...) defn* (reverse processor*) maybe-body))
                (let s0 ([stuff* #'(stuff ...)] [defn* '()] [echo? #f])
-                 (syntax-case stuff* ()
-                   [((definitions defn ...) . stuff*)
-                     (eq? (datum definitions) 'definitions)
+                 (syntax-parse stuff*
+                   [(#:definitions (defn ...) . stuff*)
                      (s0 #'stuff* #'(defn ...) echo?)]
                    [((?expand-modifier ?echo) . stuff*)
                      (and (eq? (datum ?expand-modifier) 'expand-modifier)

@@ -2,9 +2,9 @@
 ;;; Copyright (c) 2000-2013 Dipanwita Sarkar, Andrew W. Keep, R. Kent Dybvig, Oscar Waddell
 ;;; See the accompanying file Copyright for details
 
-;;; Producs are : record defs, parser, meta parser, lang 
+;;; Producs are : record defs, parser, meta parser, lang
 ;;; may need to use meta define meta-parser.
-;;; 
+;;;
 ;;; TODO:
 ;;;   - add facility to allow for functional transformations while unparsing
 ;;;     (instead of just the pattern ones available now).  this should be
@@ -207,26 +207,24 @@
           (lambda (ldef)
             (let f ([ldef ldef] [base-lang #f] [found-entry #f]
                     [entry-ntspec #f] [first-ntspec #f] [terms '()] [ntspecs '()])
-              (syntax-case ldef (extends entry terminals)
+              (syntax-parse ldef
                 [() (values base-lang (if base-lang entry-ntspec (or entry-ntspec first-ntspec)) terms (reverse ntspecs))]
-                [((extends ?L) . rest)
-                 (identifier? #'?L)
+                [(#:extends ?L:id . rest)
                  (begin
                    (when base-lang
                      (raise-syntax-error 'define-language
                        "only one extends clause allowed in language definition"
-                       #'(extends ?L) name))
+                       #'(#:extends ?L) name))
                    (f #'rest #'?L found-entry entry-ntspec first-ntspec terms ntspecs))]
-                [((entry ?P) . rest)
-                 (identifier? #'?P)
+                [(#:entry ?P:id . rest)
                  (begin
                    (when found-entry
                      (raise-syntax-error 'define-language
                        "only one entry clause allowed in language definition"
-                       #'(entry ?P) entry-ntspec))
+                       #'(#:entry ?P) entry-ntspec))
                    (f #'rest base-lang #t #'?P first-ntspec terms ntspecs))]
-                [((terminals ?t* ...) . rest)
-                 (f #'rest base-lang found-entry entry-ntspec first-ntspec 
+                [(#:terminals (?t* ...) . rest)
+                 (f #'rest base-lang found-entry entry-ntspec first-ntspec
                    (append terms #'(?t* ...)) ntspecs)]
                 [((ntspec (meta* ...) a a* ...) . rest)
                  (and (identifier? #'ntspec) (andmap identifier? (stx->list #'(meta* ...))))
@@ -403,8 +401,8 @@
           (unless lang-pair (raise-syntax-error who "language not found" lang))
           (let ([lang (car lang-pair)])
             #`'(define-language #,(language-name lang)
-                 (entry #,(language-entry-ntspec lang))
-                 (terminals #,@(map tspec->s-expression (language-tspecs lang)))
+                 #:entry #,(language-entry-ntspec lang)
+                 #:terminals #,(map tspec->s-expression (language-tspecs lang))
                  #,@(map ntspec->s-expression (language-ntspecs lang)))))))
     (syntax-case x ()
       [(_ lang) (identifier? #'lang) (doit #'lang #f)]
@@ -500,12 +498,12 @@
                        [(term ...) (diff-terminals (language-tspecs l0) (language-tspecs l1))]
                        [(nonterm ...) (diff-nonterminals (language-ntspecs l0) (language-ntspecs l1))])
            (syntax-case #'(term ...) ()
-             [() #''(define-language lang1 (extends lang0)
-                      (entry l1-entry)
+             [() #''(define-language lang1 #:extends lang0
+                      #:entry l1-entry
                       nonterm ...)]
-             [(term ...) #''(define-language lang1 (extends lang0)
-                              (entry l1-entry)
-                              (terminals term ...)
+             [(term ...) #''(define-language lang1 #:extends lang0
+                              #:entry l1-entry
+                              #:terminals (term ...)
                               nonterm ...)]))))])))
 
 (define-syntax prune-language
@@ -520,13 +518,13 @@
                           [entry-nt (language-entry-ntspec l)])
              (syntax-case #'(ts ...) ()
                [() #''(define-language L
-                        (entry entry-nt)
+                        #:entry entry-nt
                         nts ...)]
                [(ts ...) #''(define-language L
-                              (entry entry-nt)
-                              (terminals ts ...)
+                              #:entry entry-nt
+                              #:terminals (ts ...)
                               nts ...)]))))])))
-  
+
 (define-syntax define-pruned-language
   (lambda (x)
     (define who 'define-pruned-language)
@@ -538,6 +536,6 @@
            (with-syntax ([((ts ...) (nts ...)) (prune-language-helper l)]
                           [entry-nt (language-entry-ntspec l)])
              #'(define-language new-name
-                 (entry entry-nt)
-                 (terminals ts ...)
+                 #:entry entry-nt
+                 #:terminals (ts ...)
                  nts ...))))])))

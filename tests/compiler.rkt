@@ -34,10 +34,9 @@
 (require "synforms.rkt")
 
 (define-language LP
-  (terminals
-    (variable (x))
-    (datum (d))
-    (user-primitive (pr)))
+  #:terminals ((variable (x))
+               (datum (d))
+               (user-primitive (pr)))
   (Expr (e body)
     d
     x
@@ -53,7 +52,7 @@
 
 (define-parser parse-LP LP)
 
-(define-language L0 (extends LP)
+(define-language L0 #:extends LP
   (Expr (e body)
     (- d
        x
@@ -126,35 +125,35 @@
           [else (error who "invalid expression" expr)])))))
 
 (define-pass verify-scheme : LP (ir) -> L0 ()
-  (definitions
-    (define invalid-var?
-      (lambda (x env)
-        (cond
-          [(memq x env) #f]
-          [(keyword? x) "keyword"]
-          [(user-primitive? x) "user-primitive"]
-          [else "unbound variable"])))
-    (define valid-bindings?
-      (lambda (ls)
-        (andmap variable? ls)))
-    (define duplicate-names?
-      (lambda (var*)
-        (let f ([ls var*] [dups '()])
-          (cond
-            [(null? ls) (if (null? dups) #f dups)]
+  #:definitions
+  ((define invalid-var?
+     (lambda (x env)
+       (cond
+         [(memq x env) #f]
+         [(keyword? x) "keyword"]
+         [(user-primitive? x) "user-primitive"]
+         [else "unbound variable"])))
+   (define valid-bindings?
+     (lambda (ls)
+       (andmap variable? ls)))
+   (define duplicate-names?
+     (lambda (var*)
+       (let f ([ls var*] [dups '()])
+         (cond
+           [(null? ls) (if (null? dups) #f dups)]
             [(and (memq (car ls) (cdr ls)) (not (memq (car ls) dups)))
              (f (cdr ls) (cons (car ls) dups))]
             [else (f (cdr ls) dups)]))))
-    (define format-list
-      (lambda (ls)
-        (case (length ls)
-          [(0) ""]
-          [(1) (format "~s" (car ls))]
-          [(2) (format "~s and ~s" (car ls) (cadr ls))]
-          [else (let f ([a (car ls)] [ls (cdr ls)])
-                  (if (null? ls)
-                      (format "and ~s" a)
-                      (format "~s, ~a" a (f (car ls) (cdr ls)))))]))))
+   (define format-list
+     (lambda (ls)
+       (case (length ls)
+         [(0) ""]
+         [(1) (format "~s" (car ls))]
+         [(2) (format "~s and ~s" (car ls) (cadr ls))]
+         [else (let f ([a (car ls)] [ls (cdr ls)])
+                 (if (null? ls)
+                     (format "and ~s" a)
+                     (format "~s, ~a" a (f (car ls) (cdr ls)))))]))))
   (Expr : Expr (ir [env '()]) -> Expr ()
     [,d `(datum ,d)]
     [,x (let ([invalid? (invalid-var? x env)])
@@ -217,7 +216,7 @@
            `(primapp ,e0 ,e1 ...)
            `(app ,(Expr e0 env) ,e1 ...)))]))
 
-(define-language L1 (extends L0)
+(define-language L1 #:extends L0
   (Expr (e body)
     (- (lambda (x ...) body1 ... body2)
        (let ((x e) ...) body1 ... body2)
@@ -237,7 +236,7 @@
     [(letrec ((,x ,[e]) ...) ,[body1] ... ,[body2])
      `(letrec ((,x ,e) ...) (begin ,body1 ... ,body2))]))
 
-(define-language L2 (extends L1)
+(define-language L2 #:extends L1
   (Expr (e body)
     (- (datum d))
     (+ (quoted-const d))))
@@ -248,7 +247,7 @@
   (process-expr-expr : Expr (ir) -> Expr ()
     [(datum ,d) `(quoted-const ,d)]))
 
-(define-language L3 (extends L2) (Expr (e body) (- (if e1 e2))))
+(define-language L3 #:extends L2 (Expr (e body) (- (if e1 e2))))
 
 (define-parser parse-L3 L3)
 
@@ -256,7 +255,7 @@
   (process-expr-expr : Expr (ir) -> Expr ()
     [(if ,[e1] ,[e2]) `(if ,e1 ,e2 (primapp void))]))
 
-(define-language L4 (extends L3)
+(define-language L4 #:extends L3
   (Expr (e body)
     (- (lambda (x ...) body)
        (let ((x e) ...) body)
@@ -269,14 +268,14 @@
 (define-parser parse-L4 L4)
 
 (define-pass uncover-settable : L3 (ir) -> L4 ()
-  (definitions
-    (define Expr*
-      (lambda (e* asgn-var*)
-        (if (null? e*)
-            (values '() asgn-var*)
-            (let-values ([(e asgn-var*) (Expr (car e*) asgn-var*)])
-              (let-values ([(e* asgn-var*) (Expr* (cdr e*) asgn-var*)])
-                (values (cons e e*) asgn-var*)))))))
+  #:definitions
+  ((define Expr*
+     (lambda (e* asgn-var*)
+       (if (null? e*)
+           (values '() asgn-var*)
+           (let-values ([(e asgn-var*) (Expr (car e*) asgn-var*)])
+             (let-values ([(e* asgn-var*) (Expr* (cdr e*) asgn-var*)])
+               (values (cons e e*) asgn-var*)))))))
   (Expr : Expr (ir asgn-var*) -> Expr (asgn-var*)
     [(set! ,x ,[e asgn-var*]) (values `(set! ,x ,e) (set-cons x asgn-var*))]
     [(lambda (,x* ...) ,[body asgn-var*])
@@ -309,7 +308,7 @@
        (values `(begin ,e* ... ,e) asgn-var*))])
   (let-values ([(e asgn-var*) (Expr ir '())]) e))
 
-(define-language L5 (extends L4)
+(define-language L5 #:extends L4
   (Expr (e body)
     (+ lexpr
        (letrec ((x lexpr) ...) body))
@@ -362,7 +361,7 @@
   (process-setbody-expr : SetBody (ir) -> Expr ()
     [(settable (,x ...) ,[body]) `,body]))
 
-(define-language L6 (extends L5)
+(define-language L6 #:extends L5
   (Expr (e body)
     (- (let ((x e) ...) sbody)
        (set! x e))
@@ -454,7 +453,7 @@
     [(lambda (,x ...) ,[body #f -> body ig])
      (values `(lambda (,x ...) ,body) #t)]))
 
-(define-language L7 (extends L6) (Expr (e body) (- lexpr)))
+(define-language L7 #:extends L6 (Expr (e body) (- lexpr)))
 
 (define-parser parse-L7 L7)
 
@@ -482,8 +481,8 @@
   (LambdaExpr : LambdaExpr (ir) -> LambdaExpr ()
     [(lambda (,x ...) ,[body]) `(lambda (,x ...) ,body)]))
 
-(define-language L8 (extends L7)
-  (entry Expr)
+(define-language L8 #:extends L7
+  #:entry Expr
   (LambdaExpr (lexpr) (- (lambda (x ...) body)))
   (FreeExp (free-body) (+ (free (x ...) body) => body))
   (LambdaExpr (lexpr) (+ (lambda (x ...) free-body))))
@@ -491,21 +490,21 @@
 (define-parser parse-L8 L8)
 
 (define-pass uncover-free : L7 (ir) -> L8 ()
-  (definitions
-    (define LambdaExpr*
-      (lambda (lexpr* free*)
-        (if (null? lexpr*)
-            (values '() free*)
-            (let-values ([(lexpr free*) (LambdaExpr (car lexpr*) free*)])
-              (let-values ([(lexpr* free*) (LambdaExpr* (cdr lexpr*) free*)])
-                (values (cons lexpr lexpr*) free*))))))
-    (define Expr*
-      (lambda (e* free*)
-        (if (null? e*)
-            (values '() free*)
-            (let-values ([(e free*) (Expr (car e*) free*)])
-              (let-values ([(e* free*) (Expr* (cdr e*) free*)])
-                (values (cons e e*) free*)))))))
+  #:definitions
+  ((define LambdaExpr*
+     (lambda (lexpr* free*)
+       (if (null? lexpr*)
+           (values '() free*)
+           (let-values ([(lexpr free*) (LambdaExpr (car lexpr*) free*)])
+             (let-values ([(lexpr* free*) (LambdaExpr* (cdr lexpr*) free*)])
+               (values (cons lexpr lexpr*) free*))))))
+   (define Expr*
+     (lambda (e* free*)
+       (if (null? e*)
+           (values '() free*)
+           (let-values ([(e free*) (Expr (car e*) free*)])
+             (let-values ([(e* free*) (Expr* (cdr e*) free*)])
+               (values (cons e e*) free*)))))))
   (Expr : Expr (ir free*) -> Expr (free*)
     [(letrec ([,x* ,lexpr*] ...) ,[body free*])
      (let-values ([(e* free*) (LambdaExpr* lexpr* free*)])
@@ -535,10 +534,9 @@
   (let-values ([(e free*) (Expr ir '())]) e))
 
 (define-language L9
-  (terminals
-    (variable (x))
-    (datum (d))
-    (user-primitive (pr)))
+  #:terminals ((variable (x))
+               (datum (d))
+               (user-primitive (pr)))
   (Expr (e body)
     (var x)
     (quoted-const d)
@@ -586,8 +584,8 @@
             (closure-letrec ([,x1 ,closure*] ...)
               ,(Expr body2 direct)))))]))
 
-(define-language L10 (extends L9)
-  (entry LetrecExpr)
+(define-language L10 #:extends L9
+  #:entry LetrecExpr
   (LetrecExpr (lrexpr) (+ (letrec ((x lexpr) ...) e)))
   (Expr (e body)
     (- (letrec ((x lexpr) ...) c-letrec))
@@ -597,21 +595,21 @@
 (define-parser parse-L10 L10)
 
 (define-pass lift-letrec : L9 (ir) -> L10 ()
-  (definitions
-    (define Expr*
-      (lambda (e* binding*)
-        (if (null? e*)
-            (values '() binding*)
-            (let-values ([(e binding*) (Expr (car e*) binding*)])
-              (let-values ([(e* binding*) (Expr* (cdr e*) binding*)])
-                (values (cons e e*) binding*))))))
-    (define LambdaExpr*
-      (lambda (lexpr* binding*)
-        (if (null? lexpr*)
-            (values '() binding*)
-            (let-values ([(lexpr binding*) (LambdaExpr (car lexpr*) binding*)])
-              (let-values ([(lexpr* binding*) (LambdaExpr* (cdr lexpr*) binding*)])
-                (values (cons lexpr lexpr*) binding*)))))))
+  #:definitions
+  ((define Expr*
+     (lambda (e* binding*)
+       (if (null? e*)
+           (values '() binding*)
+           (let-values ([(e binding*) (Expr (car e*) binding*)])
+             (let-values ([(e* binding*) (Expr* (cdr e*) binding*)])
+               (values (cons e e*) binding*))))))
+   (define LambdaExpr*
+     (lambda (lexpr* binding*)
+       (if (null? lexpr*)
+           (values '() binding*)
+           (let-values ([(lexpr binding*) (LambdaExpr (car lexpr*) binding*)])
+             (let-values ([(lexpr* binding*) (LambdaExpr* (cdr lexpr*) binding*)])
+               (values (cons lexpr lexpr*) binding*)))))))
   (Expr : Expr (ir binding*) -> Expr (binding*)
     ; TODO: we'd like to do this using variable threading!
     [(var ,x) (values `(var ,x) binding*)]
@@ -651,10 +649,9 @@
     (let ([x* (map car binding*)] [e* (map cdr binding*)])
       `(letrec ([,x* ,e*] ...) ,e))))
 
-(define-language L11 (extends L10)
-  (entry LetrecExpr)
-  (terminals
-    (+ (system-primitive (spr))))
+(define-language L11 #:extends L10
+  #:entry LetrecExpr
+  #:terminals ((+ (system-primitive (spr))))
   (Expr (e body)
     (- (closure-letrec ((x c-exp) ...) body))
     (+ (sys-primapp spr e ...)))
@@ -710,13 +707,12 @@
     [(lambda (,x ...) ,[bf-body -> body]) `(lambda (,x ...) ,body)]))
 
 (define-language L12
-  (terminals
-    (variable (x))
-    (datum (d))
-    (value-primitive (vp))
-    (predicate-primitive (pp))
-    (effect-primitive (ep))
-    (system-primitive (spr)))
+  #:terminals ((variable (x))
+               (datum (d))
+               (value-primitive (vp))
+               (predicate-primitive (pp))
+               (effect-primitive (ep))
+               (system-primitive (spr)))
   (LetrecExpr (lrexpr)
     (letrec ((x lexpr) ...) v))
   (LambdaExpr (lexpr)
@@ -843,13 +839,12 @@
     [(app ,[v0] ,[v1] ...) `(app ,v0 ,v1 ...)]))
 
 (define-language L13
-  (terminals
-    (variable (x))
-    (datum (d))
-    (value-primitive (vp))
-    (predicate-primitive (pp))
-    (effect-primitive (ep))
-    (system-primitive (spr)))
+  #:terminals ((variable (x))
+               (datum (d))
+               (value-primitive (vp))
+               (predicate-primitive (pp))
+               (effect-primitive (ep))
+               (system-primitive (spr)))
   (LetrecExpr (lrexpr)
     (letrec ((x lexpr) ...) v))
   (LambdaExpr (lexpr)
@@ -889,14 +884,14 @@
 (define-parser parse-L13 L13)
 
 (define-pass remove-complex-opera* : L12 (ir) -> L13 ()
-  (definitions
-    (define remove-nulls
-      (lambda (ls)
-        (if (null? ls)
-            '()
-            (if (null? (car ls))
-                (remove-nulls (cdr ls))
-                (cons (car ls) (remove-nulls (cdr ls))))))))
+  #:definitions
+  ((define remove-nulls
+     (lambda (ls)
+       (if (null? ls)
+           '()
+           (if (null? (car ls))
+               (remove-nulls (cdr ls))
+               (cons (car ls) (remove-nulls (cdr ls))))))))
   (LetrecExpr : LetrecExpr (ir) -> LetrecExpr ()
     [(letrec ((,x ,[lexpr]) ...) ,[v]) `(letrec ((,x ,lexpr) ...) ,v)])
   (LambdaExpr : LambdaExpr (ir) -> LambdaExpr ()
@@ -1061,8 +1056,8 @@
            (let ([x (map car binding*)] [v (map cadr binding*)])
              `(let ((,x ,v) ...) (app ,v0 ,t* ...)))))]))
 
-(define-language L14 (extends L13)
-  (entry LetrecExpr)
+(define-language L14 #:extends L13
+  #:entry LetrecExpr
   (Value (v) (- (anonymous-call t0 t1 ...)))
   (Predicate (p) (- (anonymous-call t0 t1 ...)))
   (Effect (f) (- (anonymous-call t0 t1 ...))))
@@ -1087,13 +1082,12 @@
 (define-parser parse-L14 L14)
 
 (define-language L15
-  (terminals
-    (variable (x))
-    (datum (d))
-    (value-primitive (vp))
-    (predicate-primitive (pp))
-    (effect-primitive (ep))
-    (system-primitive (spr)))
+  #:terminals ((variable (x))
+               (datum (d))
+               (value-primitive (vp))
+               (predicate-primitive (pp))
+               (effect-primitive (ep))
+               (system-primitive (spr)))
   (LetrecExpr (lrexpr)
     (letrec ((x1 lexpr) ...) rnexpr))
   (RunExpr (rnexpr)
@@ -1277,8 +1271,8 @@
      (let ([label (gen-label (gen-symbol 'lab))])
        `(return-point ,label (app ,t0 (var ,label) ,t1 ...)))]))
 
-(define-language L16 (extends L15)
-  (entry LetrecExpr)
+(define-language L16 #:extends L15
+  #:entry LetrecExpr
   (Tail (tl)
     (- (let ((x ntl1) ...) tl2))
     (+ (let ((x ntl1)) tl2)))
@@ -1332,8 +1326,8 @@
                  [f (loop (cdr lhs*) (cdr rhs*))])
              `(let ((,x ,ntl)) ,f))))]))
 
-(define-language L17 (extends L16)
-  (entry LetrecExpr)
+(define-language L17 #:extends L16
+  #:entry LetrecExpr
   (RunExpr (rnexpr)
     (- (run (x) tl))
     (+ (run (x) dec)))
@@ -1365,14 +1359,14 @@
 (define-parser parse-L17 L17)
 
 (define-pass return-of-set! : L16 (ir) -> L17 ()
-  (definitions
-    (define Effect*
-      (lambda (f* var*)
-        (if (null? f*)
-            (values '() var*)
-            (let-values ([(f var*) (Effect (car f*) var*)])
-              (let-values ([(f* var*) (Effect* (cdr f*) var*)])
-                (values (cons f f*) var*)))))))
+  #:definitions
+  ((define Effect*
+     (lambda (f* var*)
+       (if (null? f*)
+           (values '() var*)
+           (let-values ([(f var*) (Effect (car f*) var*)])
+             (let-values ([(f* var*) (Effect* (cdr f*) var*)])
+               (values (cons f f*) var*)))))))
   (RunExpr : RunExpr (ir) -> RunExpr ()
     [(run (,x) ,[tl '() -> tl var*]) `(run (,x) (declare (,var* ...) ,tl))])
   (LambdaExpr : LambdaExpr (ir) -> LambdaExpr ()
@@ -1425,8 +1419,8 @@
      (let-values ([(f* var*) (Effect* f* var*)])
        (values `(begin ,f* ... ,p) var*))]))
 
-(define-language L18 (extends L17)
-  (entry LetrecExpr)
+(define-language L18 #:extends L17
+  #:entry LetrecExpr
   (Triv (t) (+ (label x))))
 
 (define-parser parse-L18 L18)

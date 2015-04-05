@@ -24,10 +24,9 @@
         (and (pair? x) (constant? (car x)) (constant? (cdr x))))))
 
 (define-language L0
-  (terminals
-    (variable (x))
-    (constant (c))
-    (primitive (pr)))
+  #:terminals ((variable (x))
+               (constant (c))
+               (primitive (pr)))
   (Expr (e)
     (var x)
     (quote c)
@@ -44,10 +43,10 @@
 (define make-var (lambda (sym) ($make-var sym #f #f #f)))
 
 (define-language LUNPARSE
-  (terminals
-    (var (x))         => var-sym
-    (constant (c))
-    (primitive (pr)))
+  #:terminals
+    ((var (x))         => var-sym
+     (constant (c))
+     (primitive (pr)))
   (Expr (e body)
     (var x)                                      => x
     (quoted c)                                   => (quote c)
@@ -60,15 +59,15 @@
     (app e0 e1 ...)                              => (e0 e1 ...)))
 
 (define-language LBool
-  (terminals
-    (boolean (b)))
+  #:terminals
+    ((boolean (b)))
   (Expr (e)
     b))
 
 (define-language LBoolLambda
-  (terminals
-    (boolean (b))
-    (symbol (x)))
+  #:terminals
+    ((boolean (b))
+     (symbol (x)))
   (Expr (e)
     v
     x
@@ -278,10 +277,10 @@
         (and (vector? x) (andmap datum? (vector->list x))))))
 
 (define-language LVAR
-  (terminals
-    (var (x))
-    (primitive (pr))
-    (datum (d)))
+  #:terminals
+    ((var (x))
+     (primitive (pr))
+     (datum (d)))
   (Expr (e)
     (var x)
     (quote d)
@@ -293,8 +292,8 @@
     (primapp pr e ...)))
 
 (define-pass break-variable : LVAR (ir) -> LVAR ()
-  (definitions
-    (define var? symbol?))
+  #:definitions
+    ((define var? symbol?))
   (Expr : Expr (ir) -> Expr ()
     [(var ,x) (printf "found var: ~a\n" (var-sym x)) `(var ,x)]))
 
@@ -310,9 +309,9 @@
        "found var: x\n"))))
 
 (define-language Lmaybe
-  (terminals
-    (boolean (b))
-    (integer (i)))
+  #:terminals
+    ((boolean (b))
+     (integer (i)))
   (Exp (e)
     (Int i)
     (Bool b)
@@ -418,9 +417,9 @@
           (unparse-Lmaybe (add-one (with-output-language (Lmaybe Exp) `(Foo 3 (Bar #f (Foo 6 #f))))))))))))
 
 (define-language Lmaybe2
-  (terminals
-    (boolean (b))
-    (integer (i)))
+  #:terminals
+    ((boolean (b))
+     (integer (i)))
   (Exp (e)
     (Int i)
     (Bool b)
@@ -556,9 +555,9 @@
           (unparse-Lmaybe2 (add-one (with-output-language (Lmaybe2 Exp) `(Foo 3 (Bar #f (Foo 6 #f)) (Bool #t) #f))))))))))
 
 (define-language LMaybeNoBool
-  (terminals
-    (symbol (x))
-    (number (n)))
+  #:terminals
+    ((symbol (x))
+     (number (n)))
   (Expr (e)
     (foo x (maybe n))
     (bar (maybe e) x)
@@ -566,9 +565,9 @@
     (ref x)))
 
 (define-language LMaybeListNoBool
-  (terminals
-    (symbol (x))
-    (number (n)))
+  #:terminals
+    ((symbol (x))
+     (number (n)))
   (Expr (e)
     (foo ([x (maybe n)] ...) e)
     (bar (maybe e) ... x)
@@ -611,9 +610,9 @@
 
 ;; tests related to issue #7 on github.com
 (define-language LPairs
-  (terminals
-    (symbol (x))
-    (null (n)))
+  #:terminals
+    ((symbol (x))
+     (null (n)))
   (Expr (e)
     x
     n
@@ -626,8 +625,8 @@
     [(,[e0] . ,[e1]) `(,e1 . ,e0)]))
 
 (define-language LList
-  (terminals
-    (symbol (x))
+  #:terminals
+   ((symbol (x))
     (null (n)))
   (Expr (e)
     x
@@ -637,9 +636,9 @@
 (define-parser parse-LList LList)
 
 (define-language LList2
-  (terminals
-    (symbol (x))
-    (null (n)))
+  #:terminals
+    ((symbol (x))
+     (null (n)))
   (Expr (e)
     x
     n
@@ -652,8 +651,8 @@
 
 ;; example provided by Simon Stapleton via bug #7
 (define-language Lx
-  (terminals
-    (symbol (x)))
+  #:terminals
+    ((symbol (x)))
   (Expr (e)
     x
     (lambda (x* ... . x) e)
@@ -836,10 +835,10 @@
        (unparse-Lx (Px1 (parse-Lx '(define (f . x) (define (g . y) x)))))))))
 
 (define-language LMULTI
-  (terminals
-    (var (x))
-    (primitive (pr))
-    (datum (d)))
+  #:terminals
+    ((var (x))
+     (primitive (pr))
+     (datum (d)))
   (Expr (e)
     (var x)
     (primref pr)
