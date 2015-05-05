@@ -186,7 +186,7 @@
     (define parse-terms
       (lambda (id terms)
         (define (build-tspec t mvs maybe-handler)
-          (make-tspec t (stx->list mvs) maybe-handler (format-id id "~a?" t)))
+          (make-tspec t (stx->list mvs) maybe-handler t))
         (let loop ([terms terms] [tspecs '()])
           (syntax-parse terms
             #:datum-literals (=>)
