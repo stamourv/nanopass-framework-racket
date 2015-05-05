@@ -4,6 +4,9 @@
 
 (require racket/contract/base)
 (provide
+ ;; not sure what to contract
+ ~literal/datum
+
   ;; hack
   maybe-syntax->datum
 
@@ -13,12 +16,7 @@
   ;; predicates for looking for identifiers independent of context
   (contract-out
     [ellipsis? (-> any/c boolean?)]
-    [unquote? (-> any/c boolean?)]
-    [colon? (-> any/c boolean?)]
-    [arrow? (-> any/c boolean?)]
-    [plus? (-> any/c boolean?)]
-    [minus? (-> any/c boolean?)]
-    [double-arrow? (-> any/c boolean?)])
+    [unquote? (-> any/c boolean?)])
     
   ;; things for dealing with syntax and idetnfieris
   (contract-out
@@ -61,7 +59,10 @@
   (contract-out [list-head (-> list? exact-nonnegative-integer? list?)]))
 
 (require (for-syntax syntax/stx
+                     syntax/parse
+                     syntax/parse/lib/function-header
                      racket/base)
+         syntax/parse
          syntax/srcloc
          racket/splicing
          racket/pretty)
@@ -248,68 +249,37 @@
 
 (define-auxiliary-keywords extends definitions entry terminals nongenerative-id)
 
-(define-syntax define-who
-  (lambda (x)
-    (syntax-case x ()
-      [(k name expr)
-       (with-syntax ([who (datum->syntax #'k 'who)])
-         #'(define name (let () (define who 'name) expr)))]
-      [(k (name . fmls) expr exprs ...)
-       #'(define-who name (lambda (fmls) expr exprs ...))])))
+(define-syntax (define-who x)
+  (syntax-parse x
+    [(k name expr)
+     (with-syntax ([who (datum->syntax #'k 'who)])
+       #'(define name (let () (define who 'name) expr)))]
+    [(k (name fmls:function-header) expr exprs ...)
+     #'(define-who name (lambda (fmls) expr exprs ...))]))
 
 ;;; moved from meta-syntax-dispatch.ss and nano-syntax-dispatch.ss
-(define combine
-  (lambda (r* r)
-    (if (null? (car r*))
-        r
-        (cons (map car r*) (combine (map cdr r*) r))))) 
-  
+(define (combine r* r)
+  (if (null? (car r*))
+      r
+      (cons (map car r*) (combine (map cdr r*) r))))
+
 ;;; moved from meta-syntax-dispatch.ss and syntaxconvert.ss
-(define ellipsis?
-  (lambda (x)
-    (and (identifier? x)
-         (or (free-identifier=? x (syntax (... ...)))
-             (eq? (syntax->datum x) '...))))) 
+(define-syntax ~literal/datum
+  (pattern-expander
+   (lambda (stx)
+     (syntax-parse stx
+       [(_ x)
+        #'(~or (~literal x) (~datum x))]))))
 
-(define unquote?
-  (lambda (x)
-    (and (identifier? x)
-         (or (free-identifier=? x (syntax unquote))
-             (eq? (syntax->datum x) 'unquote)))))
+(define (ellipsis? x)
+  (and (identifier? x)
+       (or (free-identifier=? x (syntax (... ...)))
+           (eq? (syntax->datum x) '...))))
 
-(define unquote-splicing?
-  (lambda (x)
-    (and (identifier? x) (free-identifier=? x (syntax unquote-splicing)))))
-
-(define plus?
-  (lambda (x)
-    (and (identifier? x)
-         (or (free-identifier=? x #'+)
-             (eq? (syntax->datum x) '+)))))
-
-(define minus?
-  (lambda (x)
-    (and (identifier? x)
-         (or (free-identifier=? x #'-)
-             (eq? (syntax->datum x) '-)))))
-
-(define double-arrow?
-  (lambda (x)
-    (and (identifier? x)
-         (or (free-identifier=? x #'=>)
-             (eq? (syntax->datum x) '=>)))))
-
-(define colon?
-  (lambda (x)
-    (and (identifier? x)
-         (or (free-identifier=? x #':)
-             (eq? (syntax->datum x) ':)))))
-
-(define arrow?
-  (lambda (x)
-    (and (identifier? x)
-         (or (free-identifier=? x #'->)
-             (eq? (syntax->datum x) '->)))))
+(define (unquote? x)
+  (and (identifier? x)
+       (or (free-identifier=? x (syntax unquote))
+           (eq? (syntax->datum x) 'unquote))))
 
 ;;; unique-symbol produces a unique name derived the input name by
 ;;; adding a unique suffix of the form .<digit>+.  creating a unique
