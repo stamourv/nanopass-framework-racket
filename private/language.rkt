@@ -24,7 +24,6 @@
                       racket/base
                       syntax/stx
                       syntax/parse
-                      unstable/syntax
                       "helpers.rkt"
                       "language-helpers.rkt"
                       "records.rkt"
@@ -278,12 +277,18 @@
       (annotate-language! desc id)
       (with-syntax ([(records ...) (language->lang-records desc)]
                     [(predicates ...) (language->lang-predicates desc id)]
-                    [unparser-name (format-id id "unparse-~a" lang)]
+                    [unparser-name (language-unparser desc)]
                     [meta-parser (make-meta-parser desc)])
         (with-syntax ([(tspec-preds ...) (map tspec-pred (language-tspecs desc))])
           #;(pretty-print (list 'unparser (syntax->datum lang) (syntax->datum #'unparser)))
           #;(pretty-print (list 'meta-parser (syntax->datum lang) (syntax->datum #'meta-parser)))
           (let ([stx #`(begin
+                         (define (unparser-name lang port mode)
+                           (define-unparser unparser-name #,lang)
+                           (define unparsed (unparser-name lang))
+                           (cond [(eq? mode #f) (display unparsed port)]
+                                 [(eq? mode #t) (write unparsed port)]
+                                 [else          (print unparsed port)]))
                          records ...
                          predicates ...
                          (define-syntax #,lang
@@ -360,10 +365,10 @@
                                            #'#,(ntspec-struct-name ntspec)))
                                       (language-ntspecs desc)))
                              #'#,(language-struct desc)
+                             #'#,(language-unparser desc)
                              #,(language-tag-mask desc))
                             meta-parser))
                          ;(define-property #,lang meta-parser-property meta-parser)
-                         (define-unparser unparser-name #,lang)
                          ;(printf "testing preds:\n")
                          ;(begin (printf "~s:\n" 'tspec-preds) (tspec-preds 'a)) ...
                          (void))])

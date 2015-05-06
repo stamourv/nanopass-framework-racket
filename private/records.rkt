@@ -7,6 +7,7 @@
  nonterm-id->ntspec
  $make-language
  $make-ntspec
+ language-unparser
  language-struct
  $make-pair-alt
  ntspec-struct-name
@@ -132,13 +133,14 @@
 
 (require racket/syntax
          syntax/stx
+         unstable/syntax
          "helpers.rkt"
          "syntaxconvert.rkt"
          (for-template racket/base
                        (only-in "helpers.rkt" nanopass-record)))
 
 (define-struct language
-  (name entry-ntspec tspecs ntspecs struct (tag-mask #:mutable))
+  (name entry-ntspec tspecs ntspecs struct unparser (tag-mask #:mutable))
   #:prefab #:constructor-name $make-language)
 
 (define make-language
@@ -166,7 +168,10 @@
                  (spec-meta-vars test-spec))))))))
     (lambda (name entry-ntspec tspecs ntspecs)
       (check-meta! name tspecs ntspecs)
-      ($make-language name entry-ntspec tspecs ntspecs (format-id name "~a-struct" name) #f))))
+      ($make-language name entry-ntspec tspecs ntspecs
+                      (format-id name "~a-struct" name)
+                      (format-unique-id name "unparse-~a" name)
+                      #f))))
 
 (define-struct tspec (type meta-vars handler pred) #:prefab)
 
@@ -537,6 +542,7 @@
 
 (define (language->lang-records lang)
   (let ([lang-rec-id (language-struct lang)]
+        [lang-unparser-id (language-unparser lang)]
         [ntspecs (language-ntspecs lang)]
         [tspecs (language-tspecs lang)])
     (define (alt->lang-record ntspec alt)
@@ -577,6 +583,8 @@
           #`(begin
               (define-struct (#,(pair-alt-name alt) #,(ntspec-struct-name ntspec))
                 (fld ...)
+                #:methods gen:custom-write
+                [(define write-proc #,lang-unparser-id)]
                 #:constructor-name $maker)
               (define #,(pair-alt-maker alt)
                 (lambda (who fld ... msg ...)
@@ -589,7 +597,9 @@
                               (pair-alt-field-maybes alt)))
                   ($maker #,(pair-alt-tag alt) fld ...)))))))
     (define (ntspec->lang-record ntspec)
-      #`(define-struct (#,(ntspec-struct-name ntspec) #,lang-rec-id) () #:prefab))
+      #`(define-struct (#,(ntspec-struct-name ntspec) #,lang-rec-id) () ;#:prefab
+          #:methods gen:custom-write
+          [(define write-proc #,lang-unparser-id)]))
     (define (ntspecs->lang-records ntspec*)
       (let f ([ntspec* ntspec*] [ntrec* '()] [altrec* '()])
         (if (null? ntspec*)
@@ -608,7 +618,10 @@
     
     (with-syntax ([((ntrec ...) (altrec ...))
                    (ntspecs->lang-records ntspecs)])
-      #`((define-struct (#,lang-rec-id nanopass-record) () #:prefab)
+      #`((define-struct (#,lang-rec-id nanopass-record) ()
+           ;#:prefab
+           #:methods gen:custom-write
+           [(define write-proc #,lang-unparser-id)])
          ntrec ...
          altrec ...))))
 
