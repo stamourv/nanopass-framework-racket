@@ -79,9 +79,9 @@
             [olang (and olang-pair (car olang-pair))]
             [meta-parser (and olang-pair (cdr olang-pair))])
        (unless (language? olang)
-         (raise-syntax-error 'with-output-language "unrecognized language" #'lang))
+         (raise-syntax-error 'with-output-language "unrecognized language" (syntax/loc x lang)))
        (unless (procedure? meta-parser)
-         (raise-syntax-error 'with-output-language "missing meta parser for language" #'lang))
+         (raise-syntax-error 'with-output-language "missing meta parser for language" (syntax/loc x lang)))
        #`(splicing-let-syntax ([quasiquote '#,(make-quasiquote-transformer
                                                #'id #'type olang
                                                meta-parser)]
@@ -95,9 +95,9 @@
             [olang (and olang-pair (car olang-pair))]
             [meta-parser (and olang-pair (cdr olang-pair))])
        (unless (language? olang)
-         (raise-syntax-error 'with-output-language "unrecognized language" #'lang))
+         (raise-syntax-error 'with-output-language "unrecognized language" (syntax/loc x lang)))
        (unless (procedure? meta-parser)
-         (raise-syntax-error 'with-output-language "missing meta parser for language" #'lang))
+         (raise-syntax-error 'with-output-language "missing meta parser for language" (syntax/loc x lang)))
        #`(splicing-let-syntax
              ([in-context '#,(make-in-context-transformer #'id olang
                                                           meta-parser)])
@@ -353,7 +353,11 @@
                                 fml*))]
                          [(nano-meta? nrec) (f (nano-meta-fields nrec) fml*)]
                          [(list? nrec) (f nrec fml*)]
-                         [(nano-quote? nrec) (raise-syntax-error who "quoted terminals currently unsupported in match patterns" (nano-quote-x nrec))]
+                         [(nano-quote? nrec)
+                          (raise-syntax-error
+                           who
+                           "quoted terminals currently unsupported in match patterns"
+                           (nano-quote-x nrec))]
                          [else (error who "unrecognized nano-rec" nrec)])))
                    fml* nrec*))))
             (define (helper lhs guard rhs rhs*)
@@ -1583,4 +1587,4 @@
                  [(((~datum expand-modifier) (~datum echo)) . stuff*)
                   (s0 #'stuff* defn* #t)]
                  [_ (s1 stuff* defn* '() echo?)]))))))]
-    [(_ . rest) (raise-syntax-error who "invalid syntax" #'(define-pass . rest))]))
+    [(_ . rest) (raise-syntax-error who "invalid syntax" (syntax/loc x (define-pass . rest)))]))
