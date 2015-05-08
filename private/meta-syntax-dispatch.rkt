@@ -31,13 +31,13 @@
 
 (define (match-each e p)
   (syntax-parse e
-    [((~and a (~not (~literal/datum unquote)) (~not (~literal/datum ...)))
+    [((~and a (~not (~literal/datum ...)) (~not (~literal/datum unquote)))
       (~literal/datum ...) . d)
      (let ([first (match #'a p '())])
        (and first
             (let ([rest (match-each #'d p)])
               (and rest (cons (map make-nano-dots first) rest)))))]
-    [((~and a (~not (~literal/datum unquote)) (~not (~literal/datum ...))) . d)
+    [((~and a (~not (~literal/datum ...)) (~not (~literal/datum unquote))) . d)
      (let ([first (match #'a p '())])
        (and first
             (let ([rest (match-each #'d p)])
@@ -48,8 +48,7 @@
 (define (match-each+ e x-pat y-pat z-pat r)
   (let f ([e e])
     (syntax-parse e
-      [((~and a (~not (~literal/datum unquote)) (~not (~literal/datum ...)))
-        (~literal/datum ...) . d)
+      [((~and a (~not (~literal/datum ...)) (~not (~literal/datum unquote))) (~literal/datum ...) . d)
        (let-values ([(xr* y-pat r) (f #'d)])
          (if r
              (if (null? y-pat)
@@ -59,7 +58,7 @@
                        (values #f #f #f)))
                  (values '() (cdr y-pat) (match #'a (car y-pat) r)))
              (values #f #f #f)))]
-      [((~and a (~not (~literal/datum unquote)) (~not (~literal/datum ...))) . d)
+      [((~and a (~not (~literal/datum ...)) (~not (~literal/datum unquote))) . d)
        (let-values ([(xr* y-pat r) (f #'d)])
          (if r
              (if (null? y-pat)
@@ -73,15 +72,14 @@
 
 (define (match-each-any e)
   (syntax-parse e
-    [((~and a (~not (~literal/datum ...)) (~not (literal/datum unquote)))
-      (~literal/datum ...) . d)
+    [((~and a (~not (~literal/datum unquote)) (~not (~literal/datum ...))) (~literal/datum ...) . d)
      (let ([l (match-each-any #'d)])
        (and l (cons (make-nano-dots #'a) l)))]
     [((~and a (~not (~literal/datum ...)) (~not (~literal/datum unquote))) . d)
      (let ([l (match-each-any #'d)])
        (and l (cons #'a l)))]
     [() '()]
-    [_ #f])) 
+    [_ #f]))
 
 (define (match-empty p r)
   (cond

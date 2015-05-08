@@ -125,7 +125,8 @@
           [(,rator ,rand* ...) `(app ,(f rator env) ,(f* rand* env) ...)]
           [else (error who "invalid expression" expr)])))))
 
-(define-pass verify-scheme : LP (ir) -> L0 ()
+(define-pass verify-scheme : LP -> L0
+  #:input ir
   (definitions
     (define invalid-var?
       (lambda (x env)
@@ -155,7 +156,9 @@
                   (if (null? ls)
                       (format "and ~s" a)
                       (format "~s, ~a" a (f (car ls) (cdr ls)))))]))))
-  (Expr : Expr (ir [env '()]) -> Expr ()
+  (Expr : Expr -> Expr
+        #:input ir
+        #:formals ([env '()])
     [,d `(datum ,d)]
     [,x (let ([invalid? (invalid-var? x env)])
           (if invalid?
@@ -228,8 +231,8 @@
 
 (define-parser parse-L1 L1)
 
-(define-pass remove-implicit-begin : L0 (ir) -> L1 ()
-  (process-expr-expr : Expr (ir) -> Expr ()
+(define-pass remove-implicit-begin : L0 -> L1
+  (process-expr-expr : Expr -> Expr
     [(lambda (,x ...) ,[body1] ... ,[body2])
      `(lambda (,x ...) (begin ,body1 ... ,body2))]
     [(let ((,x ,[e]) ...) ,[body1] ... ,[body2])
@@ -244,16 +247,16 @@
 
 (define-parser parse-L2 L2)
 
-(define-pass remove-unquoted-constant : L1 (ir) -> L2 ()
-  (process-expr-expr : Expr (ir) -> Expr ()
+(define-pass remove-unquoted-constant : L1 -> L2
+  (process-expr-expr : Expr -> Expr
     [(datum ,d) `(quoted-const ,d)]))
 
 (define-language L3 (extends L2) (Expr (e body) (- (if e1 e2))))
 
 (define-parser parse-L3 L3)
 
-(define-pass remove-one-armed-if : L2 (ir) -> L3 ()
-  (process-expr-expr : Expr (ir) -> Expr ()
+(define-pass remove-one-armed-if : L2 -> L3
+  (process-expr-expr : Expr -> Expr
     [(if ,[e1] ,[e2]) `(if ,e1 ,e2 (primapp void))]))
 
 (define-language L4 (extends L3)
@@ -268,7 +271,7 @@
 
 (define-parser parse-L4 L4)
 
-(define-pass uncover-settable : L3 (ir) -> L4 ()
+(define-pass uncover-settable : L3 -> L4
   (definitions
     (define Expr*
       (lambda (e* asgn-var*)
@@ -277,7 +280,10 @@
             (let-values ([(e asgn-var*) (Expr (car e*) asgn-var*)])
               (let-values ([(e* asgn-var*) (Expr* (cdr e*) asgn-var*)])
                 (values (cons e e*) asgn-var*)))))))
-  (Expr : Expr (ir asgn-var*) -> Expr (asgn-var*)
+  (Expr : Expr -> Expr
+        #:input ir
+        #:formals asgn-var*
+        #:extra-return-values (asgn-var*)
     [(set! ,x ,[e asgn-var*]) (values `(set! ,x ,e) (set-cons x asgn-var*))]
     [(lambda (,x* ...) ,[body asgn-var*])
      (let ([set-x* (intersection asgn-var* x*)])
@@ -1449,3 +1455,4 @@
   (Effect : Effect (ir labs) -> Effect ()
     [(return-point ,x ,a) (let ([a (Application a (cons x labs))])
                             `(return-point ,x ,a))]))
+

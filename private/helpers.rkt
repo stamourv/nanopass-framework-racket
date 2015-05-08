@@ -269,7 +269,7 @@
    (lambda (stx)
      (syntax-parse stx
        [(_ x)
-        #'(~or (~literal x) (~datum x))]))))
+        #'(~and (~var _ id) (~or (~literal x) (~datum x)))]))))
 
 (define (ellipsis? x)
   (and (identifier? x)
