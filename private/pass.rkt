@@ -1419,7 +1419,7 @@
                                              (squawk "specified output non-terminal without output language" #'id))]
                                         [_ (squawk "invalid output-type specifier" #'otype)])])
                      (make-pdesc #'proc-name maybe-itype fml* init*
-                                 maybe-otype (syntax->list #'(rv ...)) #'(body ...) trace? echo?))))))]))))
+                                 maybe-otype (syntax->list (syntax/loc x (rv ...))) (syntax/loc x (body ...)) trace? echo?))))))]))))
   
   (define (lookup-lang pass-name maybe-name)
     (if maybe-name

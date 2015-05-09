@@ -167,7 +167,6 @@
                                 (syntax->datum nonterm-imp-alt*)
                                 (syntax->datum nonterm-nonimp-alt*)))
           #`(lambda (stx error? nested? maybe?)
-              (displayln stx)
               (or (syntax-parse stx
                     [((~literal/datum unquote) id:id)
                      (if nested?

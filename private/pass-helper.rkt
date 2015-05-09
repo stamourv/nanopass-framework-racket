@@ -31,7 +31,7 @@
        [(_ name:id ilang:id olang:id e:id fml:id erv:id rest:id)
         #'(~seq (~var name id) (~datum :) (~var ilang id) (~datum ->) (~var olang id)
                 (~or (~optional (~seq #:input (~var e id)) #:defaults ([e #'e]))
-                     (~optional (~seq #:formals ((~var fml formals) (... ...)))
+                     (~optional (~seq #:formals ((~and fml (~or ((~var _ id) _) (~var _ id))) (... ...)))
                                 #:defaults ([(fml 1) null]))
                      (~optional (~seq #:extra-return-values (erv (... ...)))
                                 #:defaults ([(erv 1) null])))
