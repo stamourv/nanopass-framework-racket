@@ -22,6 +22,11 @@
              [(null? stx) '()]
              [else (error 'syntax->datum-helper "unexpected type" stx)])))]))
 
+(define-syntax-class language-specifier
+  (pattern (~or (~var _ id)
+                ((~var _ id) (~var _ id))
+                (~datum *))))
+
 ;; Pattern for define-pass
 ;; (Used in variants of define-pass macros)
 (define-syntax ~define-pass
@@ -29,7 +34,8 @@
    (lambda (stx)
      (syntax-parse stx
        [(_ name:id ilang:id olang:id e:id fml:id erv:id rest:id)
-        #'(~seq (~var name id) (~datum :) (~var ilang id) (~datum ->) (~var olang id)
+        #'(~seq (~var name id) (~datum :) (~var ilang language-specifier)
+                (~datum ->) (~var olang language-specifier)
                 (~or (~optional (~seq #:input (~var e id)) #:defaults ([e #'e]))
                      (~optional (~seq #:formals ((~and fml (~or ((~var _ id) _) (~var _ id))) (... ...)))
                                 #:defaults ([(fml 1) null]))
@@ -37,3 +43,4 @@
                                 #:defaults ([(erv 1) null])))
                 (... ...)
                 rest (... ...))]))))
+

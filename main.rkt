@@ -3,7 +3,7 @@
 ;;; See the accompanying file Copyright for details
 
 (provide (all-from-out racket)
- define-language define-parser trace-define-parser trace-define-pass
+ define-language define-parser define-unparser trace-define-parser trace-define-pass
  echo-define-pass define-pass with-output-language nanopass-case
  language->s-expression extends entry terminals nongenerative-id
  #;define-nanopass-record-types diff-languages define-language-node-counter
@@ -13,6 +13,7 @@
 
 (require "private/language.rkt"
          "private/parser.rkt"
+         "private/unparser.rkt"
          "private/language-node-counter.rkt"
          "private/pass.rkt"
          "private/helpers.rkt"

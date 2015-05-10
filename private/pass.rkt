@@ -91,8 +91,13 @@
     [(k (lang type) x:id cl ... [else b0 b1 ...])
      #:with quasiquote (datum->syntax #'k 'quasiquote) ; if we were in a rhs, pick-up the output quasiquote
      #'(let ()
-         (define-pass p : (lang type) (x) -> * (val)
-           (proc : type (x) -> * (val) cl ... [else b0 b1 ...])
+         (define-pass p : (lang type) -> *
+           #:input x
+           #:extra-return-values (val)
+           (proc : type -> *
+                 #:input x
+                 #:extra-return-values (val)
+                 cl ... [else b0 b1 ...])
            (proc x))
          (p x))]
     [(k (lang type) e cl ... [else b0 b1 ...])

@@ -37,22 +37,21 @@
   ;; are being removed, we "mark" that we found the one to remove by
   ;; pulling it out of our removal list.  If any remain in the removal
   ;; list when we're done, we complain about it.
-  (define freshen-objects
-    (lambda (o=? fresh-o msg unpacker)
-      (rec f
-        (lambda (os os-)
-          (cond
-            [(and (null? os) (not (null? os-)))
-             (raise-syntax-error 'define-language msg (map unpacker os-))]
-            [(null? os) '()]
-            [else
-             (let g ([os- os-] [o (car os)] [checked-os- '()])
-               (cond
-                 [(null? os-) (cons (fresh-o o) (f (cdr os) checked-os-))]
-                 [(o=? o (car os-))
-                  (f (cdr os) (append checked-os- (cdr os-)))]
-                 [else (g (cdr os-) o (cons (car os-) checked-os-))]))])))))
-  
+  (define (freshen-objects o=? fresh-o msg unpacker)
+    (rec f
+         (lambda (os os-)
+           (cond
+             [(and (null? os) (not (null? os-)))
+              (raise-syntax-error 'define-language msg (map unpacker os-))]
+             [(null? os) '()]
+             [else
+              (let g ([os- os-] [o (car os)] [checked-os- '()])
+                (cond
+                  [(null? os-) (cons (fresh-o o) (f (cdr os) checked-os-))]
+                  [(o=? o (car os-))
+                   (f (cdr os) (append checked-os- (cdr os-)))]
+                  [else (g (cdr os-) o (cons (car os-) checked-os-))]))]))))
+
   (define freshen-tspecs
     (freshen-objects tspec=? values "unrecognized tspecs" tspec-type))
   (define freshen-alts
