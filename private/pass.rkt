@@ -22,7 +22,6 @@
                      syntax/parse
                      racket/base
                      racket/pretty
-                     unstable/pretty
                      "helpers.rkt"
                      "records.rkt"
                      "syntaxconvert.rkt"
@@ -80,7 +79,7 @@
                    -1)
                 (format "Language ~a:~n~a"
                         (syntax-e #'lang)
-                        (pretty-format/write
+                        (pretty-format #:mode 'write
                          (language->s-expression-internal olang))))))]
       [(id lang b b* ...)
        #:with in-context (datum->syntax #'id 'in-context)
@@ -104,7 +103,7 @@
                    -1)
                 (format "Language ~a:~n~a"
                         (syntax-e #'lang)
-                        (pretty-format/write
+                        (pretty-format #:mode 'write
                          (language->s-expression-internal olang))))))]))
 
 (define-syntax (nanopass-case x)
@@ -133,7 +132,7 @@
                    -1)
                 (format "Language ~a:~n~a"
                         (syntax-e #'lang)
-                        (pretty-format/write
+                        (pretty-format #:mode 'write
                          (language->s-expression-internal olang))))))]
     [(k (lang type) e cl ... [else b0 b1 ...])
      (let* ([olang-pair (lookup-language 'with-output-language "unrecognized language name" #'lang)]
@@ -150,7 +149,7 @@
                    -1)
                 (format "Language ~a:~n~a"
                         (syntax-e #'lang)
-                        (pretty-format/write
+                        (pretty-format #:mode 'write
                          (language->s-expression-internal olang))))))]
     [(k (lang type) e cl ...)
      (let* ([olang-pair (lookup-language 'with-output-language "unrecognized language name" #'lang)]
@@ -174,7 +173,7 @@
                    -1)
                 (format "Language ~a:~n~a"
                         (syntax-e #'lang)
-                        (pretty-format/write
+                        (pretty-format #:mode 'write
                          (language->s-expression-internal olang))))))]))
 
 (define-syntax trace-define-pass
@@ -1618,7 +1617,7 @@
                                   -1)
                                (format "Language ~a:~n~a"
                                        (syntax-e maybe-iname)
-                                       (pretty-format/write
+                                       (pretty-format #:mode 'write
                                         (language->s-expression-internal maybe-ilang)))))
                   (and maybe-oname maybe-olang
                        (vector maybe-oname
@@ -1628,7 +1627,7 @@
                                   -1)
                                (format "Language ~a:~n~a"
                                        (syntax-e maybe-oname)
-                                       (pretty-format/write
+                                       (pretty-format #:mode 'write
                                         (language->s-expression-internal maybe-olang)))))))))))))
 
     (syntax-case x ()

@@ -25,7 +25,7 @@
                       racket/list
                       syntax/stx
                       syntax/parse
-                      unstable/pretty
+                      racket/pretty
                       "helpers.rkt"
                       "language-helpers.rkt"
                       "records.rkt"
@@ -404,7 +404,7 @@
                                   (syntax-span lang))
                                (format "Language ~a:~n~a"
                                        (syntax-e lang)
-                                       (pretty-format/write
+                                       (pretty-format #:mode 'write
                                         (language->s-expression-internal desc)))))))
 
   (syntax-case x ()

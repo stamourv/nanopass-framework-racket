@@ -4,8 +4,7 @@
 
 (define deps '("base"
                "rackunit-lib"
-               "compatibility-lib"
-               "unstable-pretty-lib"))
+               "compatibility-lib"))
 (define build-deps '("scribble-lib"
                      "racket-doc"))
 (define scribblings '(("doc/user-guide.scrbl")))
